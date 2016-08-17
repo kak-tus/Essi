@@ -1,0 +1,15 @@
+---
+hypnotoad:
+  listen: [ 'http://127.0.0.1:9007' ]
+  workers: 1
+  proxy: 1
+  pid_file: '/var/run/essi/hypnotoad.pid'
+
+essi:
+  user: www-data
+  group: www-data
+
+  deb_path: /data
+
+  secrets:
+    - Gbd8BG56jLaJsxJwatEm

@@ -8,7 +8,7 @@ Essi is a part of CI.
 
 ## Installation
 
-Best way to use Essi - docker container (in development).
+Best way to use Essi - docker image [kaktuss/essi](https://hub.docker.com/r/kaktuss/essi/) .
 
 If you want to start it in usual environment - you must install it
 
@@ -24,7 +24,6 @@ sudo hypnotoad /usr/local/bin/essi.pl
 
 ## Github/gitlab API
 
-
 ```
 http://example-domain:9007/v1/build/github.json
 ```
@@ -38,9 +37,13 @@ http://example-domain:9007/v1/build/gitlab.json
 But the better solution in non-private environment: use nginx (+https) and proxy pass to application like
 
 ```
-https://example-domain/essi/v1/build/gitlab.json
-->
-http://127.0.0.1:9007/v1/build/gitlab.json
+https://example-domain/essi/
+```
+
+to
+
+```
+http://127.0.0.1:9007/
 ```
 
 ## Custom API

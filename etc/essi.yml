@@ -9,7 +9,7 @@ essi:
   user: www-data
   group: www-data
 
-  deb_path: /data
+  deb_path: /data/
 
   secrets:
     - Gbd8BG56jLaJsxJwatEm

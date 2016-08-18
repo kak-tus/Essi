@@ -8,9 +8,15 @@ Essi is a part of CI.
 
 ## Installation
 
-Best way to use Essi - docker container (in development)
+Best way to use Essi - docker container (in development).
 
-If you want to start it in real environment - you must create users/dirs (see config in /etc/essi.yml) and start it like
+If you want to start it in usual environment - you must install it
+
+```
+cpanm -S https://github.com/kak-tus/Essi.git
+```
+
+and start it
 
 ```
 sudo hypnotoad /usr/local/bin/essi.pl

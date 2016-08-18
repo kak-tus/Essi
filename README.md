@@ -8,7 +8,7 @@ Essi is a part of CI.
 
 ## Installation
 
-Best way to use Essi - docker image [kaktuss/essi](https://hub.docker.com/r/kaktuss/essi/) .
+Best way to use Essi - docker image [kaktuss/essi](https://hub.docker.com/r/kaktuss/essi/).
 
 If you want to start it in usual environment - you must install it
 

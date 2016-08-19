@@ -1,3 +1,6 @@
+0.4 2016-08-19
+  - Copy all files with *.deb
+
 0.3 2016-08-19
   - Create *.changes file
 

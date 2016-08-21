@@ -14,11 +14,6 @@ use Cpanel::JSON::XS qw(decode_json);
 sub build {
   my $self = shift;
 
-  $self->render_later;
-
-  ## Clone and build may take a long time
-  $self->inactivity_timeout(1800);
-
   my $repo = $self->_repo( $self->stash('req_type') );
   unless ($repo) {
     $self->render( json => { status => 'fail' }, status => 404 );
@@ -30,10 +25,10 @@ sub build {
       $self->_build($repo);
     },
     [],
-    sub {
-      $self->render( json => { status => 'ok' } );
-    }
+    sub { }
   );
+
+  $self->render( json => { status => 'ok' } );
 
   return;
 }

@@ -1,6 +1,6 @@
 package Essi::Mojo;
 
-our $VERSION = 0.5;
+our $VERSION = 0.6;
 
 use common::sense;
 

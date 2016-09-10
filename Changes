@@ -1,3 +1,6 @@
+0.7 2016-09-10
+  - Partial support of ENV configuration
+
 0.6 2016-08-21
   - Immediate response from API
 

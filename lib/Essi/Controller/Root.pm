@@ -96,7 +96,7 @@ sub _build {
     }
   }
 
-  my $deb_path = $self->config->{essi}{deb_path};
+  my $deb_path = $ENV{ESSI_DEB_PATH} || $self->config->{essi}{deb_path};
 
   ## Build
   my $results = `export DEB_BUILD_OPTIONS=nocheck && cd /tmp/essi_$guid/repo \\

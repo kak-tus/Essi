@@ -99,7 +99,8 @@ sub _build {
   my $deb_path = $ENV{ESSI_DEB_PATH} || $self->config->{essi}{deb_path};
 
   ## Build
-  my $results = `export DEB_BUILD_OPTIONS=nocheck && cd /tmp/essi_$guid/repo \\
+  my $results = `export DEB_BUILD_OPTIONS=nocheck && mkdir -p $deb_path \\
+  && cd /tmp/essi_$guid/repo \\
   && dh-make-perl -vcs none $depends && dpkg-buildpackage -d -us -uc \\
   && cp /tmp/essi_$guid/*.deb $deb_path \\
   && cp /tmp/essi_$guid/*.changes $deb_path \\

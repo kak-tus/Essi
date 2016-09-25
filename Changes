@@ -1,3 +1,6 @@
+0.6 2016-09-11
+  - Makefile need to get dependencies
+
 0.8 2016-09-11
   - Auto dir creation
 

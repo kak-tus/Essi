@@ -101,6 +101,7 @@ sub _build {
   ## Build
   my $results = `export DEB_BUILD_OPTIONS=nocheck && mkdir -p $deb_path \\
   && cd /tmp/essi_$guid/repo \\
+  && perl Makefile.PL \\
   && dh-make-perl -vcs none $depends && dpkg-buildpackage -d -us -uc \\
   && cp /tmp/essi_$guid/*.deb $deb_path \\
   && cp /tmp/essi_$guid/*.changes $deb_path \\

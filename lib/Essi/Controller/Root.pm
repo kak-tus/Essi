@@ -68,8 +68,7 @@ sub _build {
 
   ## Clone repo
   ## repo.tar.gz need to create orig.tar.gz (in dh-make-perl)
-  `cd /tmp && git clone $repo essi_$guid/repo && cd essi_$guid \\
-  && tar -zcvf repo.tar.gz ./repo`;
+  `cd /tmp && git clone $repo essi_$guid/repo`;
 
   ## Makefile.PL must exists to prevent build of nonperl repos
   unless ( -e "/tmp/essi_$guid/repo/Makefile.PL" ) {
@@ -102,6 +101,9 @@ sub _build {
   my $results = `export DEB_BUILD_OPTIONS=nocheck && mkdir -p $deb_path \\
   && cd /tmp/essi_$guid/repo \\
   && perl Makefile.PL \\
+  && cd /tmp/essi_$guid \\
+  && tar -zcvf repo.tar.gz ./repo \\
+  && cd /tmp/essi_$guid/repo \\
   && dh-make-perl -vcs none $depends && dpkg-buildpackage -d -us -uc \\
   && cp /tmp/essi_$guid/*.deb $deb_path \\
   && cp /tmp/essi_$guid/*.changes $deb_path \\

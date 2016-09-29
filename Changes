@@ -1,4 +1,7 @@
-0.6 2016-09-11
+0.10 2016-09-30
+  - Build fix for changing repos
+
+0.9 2016-09-11
   - Makefile need to get dependencies
 
 0.8 2016-09-11

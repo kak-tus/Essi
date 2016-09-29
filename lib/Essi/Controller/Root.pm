@@ -11,6 +11,8 @@ use File::Basename qw(basename);
 use List::Util qw(any);
 use Cpanel::JSON::XS qw(decode_json);
 
+my @BUILD_FILES = ( 'Makefile.PL', 'Build.PL' );
+
 sub build {
   my $self = shift;
 
@@ -70,8 +72,14 @@ sub _build {
   ## repo.tar.gz need to create orig.tar.gz (in dh-make-perl)
   `cd /tmp && git clone $repo essi_$guid/repo`;
 
-  ## Makefile.PL must exists to prevent build of nonperl repos
-  unless ( -e "/tmp/essi_$guid/repo/Makefile.PL" ) {
+  ## Some build *.PL must exists to prevent build of nonperl repos
+  my $buildfile;
+  foreach (@BUILD_FILES) {
+    next unless -e "/tmp/essi_$guid/repo/$_";
+    $buildfile = $_;
+  }
+
+  unless ($buildfile) {
     return;
   }
 
@@ -100,7 +108,7 @@ sub _build {
   ## Build
   my $results = `export DEB_BUILD_OPTIONS=nocheck && mkdir -p $deb_path \\
   && cd /tmp/essi_$guid/repo \\
-  && perl Makefile.PL \\
+  && perl $buildfile \\
   && cd /tmp/essi_$guid \\
   && tar -zcvf repo.tar.gz ./repo \\
   && cd /tmp/essi_$guid/repo \\

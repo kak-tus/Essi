@@ -16,15 +16,15 @@ my @BUILD_FILES = ( 'Makefile.PL', 'Build.PL' );
 sub build {
   my $self = shift;
 
-  my $repo = $self->_repo( $self->stash('req_type') );
-  unless ($repo) {
+  my $path = $self->_path( $self->stash('req_type') );
+  unless ($path) {
     $self->render( json => { status => 'fail' }, status => 404 );
     return;
   }
 
   $self->fork_call(
     sub {
-      $self->_build($repo);
+      $self->_build($path);
     },
     [],
     sub { }
@@ -35,60 +35,78 @@ sub build {
   return;
 }
 
-sub _repo {
+sub _path {
   my $self = shift;
   my $type = shift;
 
+  my $file;
+  my $repo;
+
   if ( $type eq 'custom' ) {
-    return $self->param('repo');
+    $repo = $self->param('repo');
+  }
+  elsif ( $type eq 'file' ) {
+    return unless $self->param('url') =~ m/\.tar\.gz$/;
+    $file = $self->param('url');
   }
   elsif ( any { $type eq $_ } qw( github gitlab ) ) {
     if ( $self->param('payload') ) {
       my $data = decode_json( $self->param('payload') );
-      return $data->{repository}{clone_url};
+      $repo = $data->{repository}{clone_url};
     }
     else {
-      return $self->req->json->{repository}{clone_url};
+      $repo = $self->req->json->{repository}{clone_url};
     }
   }
-
-  return;
-}
-
-sub _build {
-  my $self = shift;
-  my $repo = shift;
-
-  my $uri = Mojo::URL->new($repo);
-
-  ## If ssh - add host and IP's to known_hosts
-  if ( $uri && $uri->protocol eq 'ssh' ) {
-    $self->_add_keys( $uri->host );
+  else {
+    return;
   }
 
   my $guid = Data::GUID->new->as_string;
 
-  ## Clone repo
-  ## repo.tar.gz need to create orig.tar.gz (in dh-make-perl)
-  `cd /tmp && git clone $repo essi_$guid/repo`;
+  if ($repo) {
+    my $uri = Mojo::URL->new($repo);
+
+    ## If ssh - add host and IP's to known_hosts
+    if ( $uri && $uri->protocol eq 'ssh' ) {
+      $self->_add_keys( $uri->host );
+    }
+
+    ## Clone repo
+    `cd /tmp && git clone $repo essi_$guid/repo`;
+  }
+  elsif ($file) {
+    `mkdir -p /tmp/essi_$guid/repo \\
+    && curl '$file' -o /tmp/essi_$guid/repo.tar.gz \\
+    && tar -xzvf /tmp/essi_$guid/repo.tar.gz -C /tmp/essi_$guid/repo --strip-components=1 \\
+    && rm /tmp/essi_$guid/repo.tar.gz`;
+  }
+
+  return "/tmp/essi_$guid";
+}
+
+sub _build {
+  my $self = shift;
+  my $path = shift;
 
   ## Some build *.PL must exists to prevent build of nonperl repos
   my $buildfile;
   foreach (@BUILD_FILES) {
-    next unless -e "/tmp/essi_$guid/repo/$_";
+    next unless -e "$path/repo/$_";
     $buildfile = $_;
   }
 
   unless ($buildfile) {
+    `rm -rf $path`;
     return;
   }
 
   ## Check ssh git repos in cpanfile (we add them as dependencies manually)
   my $depends = '';
-  if ( -e "/tmp/essi_$guid/repo/cpanfile" ) {
+  if ( -e "$path/repo/cpanfile" ) {
     my @found_git_repos;
 
-    my @lines = read_lines("/tmp/essi_$guid/repo/cpanfile");
+    my @lines = read_lines("$path/repo/cpanfile");
     foreach my $line (@lines) {
       my ($git_repo) = $line =~ m/requires \'(ssh\:\/\/.+)\'/;
       next unless $git_repo;
@@ -106,18 +124,21 @@ sub _build {
   my $deb_path = $ENV{ESSI_DEB_PATH} || $self->config->{essi}{deb_path};
 
   ## Build
-  my $results = `export DEB_BUILD_OPTIONS=nocheck && mkdir -p $deb_path \\
-  && cd /tmp/essi_$guid/repo \\
+  my $results = `export DEB_BUILD_OPTIONS=nocheck \\
+  && mkdir -p $deb_path \\
+  && cd $path/repo \\
   && perl $buildfile \\
-  && cd /tmp/essi_$guid \\
+  && cd $path \\
   && tar -zcvf repo.tar.gz ./repo \\
-  && cd /tmp/essi_$guid/repo \\
-  && dh-make-perl -vcs none $depends && dpkg-buildpackage -d -us -uc \\
-  && cp /tmp/essi_$guid/*.deb $deb_path \\
-  && cp /tmp/essi_$guid/*.changes $deb_path \\
-  && cp /tmp/essi_$guid/*.dsc $deb_path \\
-  && cp /tmp/essi_$guid/*.tar.xz $deb_path \\
-  && cp /tmp/essi_$guid/*.tar.gz $deb_path && rm -rf /tmp/essi_$guid/`;
+  && cd $path/repo \\
+  && dh-make-perl -vcs none $depends \\
+  && dpkg-buildpackage -d -us -uc \\
+  && cp $path/*.deb $deb_path \\
+  && cp $path/*.changes $deb_path \\
+  && cp $path/*.dsc $deb_path \\
+  && cp $path/*.tar.xz $deb_path \\
+  && cp $path/*.tar.gz $deb_path \\
+  && rm -rf $path`;
 
   $self->app->log->debug($results);
 

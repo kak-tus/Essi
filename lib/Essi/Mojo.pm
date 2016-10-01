@@ -1,6 +1,6 @@
 package Essi::Mojo;
 
-our $VERSION = 0.10;
+our $VERSION = 0.11;
 
 use common::sense;
 
@@ -72,7 +72,7 @@ sub _init_routes {
 
   $route->post(
     '/v1/build/:req_type',
-    [ req_type => [qw( github gitlab custom )] ],
+    [ req_type => [qw( github gitlab custom file )] ],
     [ format   => [qw(json)] ]
   )->to('Root#build');
 

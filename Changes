@@ -1,3 +1,7 @@
+0.11 2016-10-01
+  - Support for tar.gz download
+  - Fix clean cloned repos
+
 0.10 2016-09-30
   - Build fix for changing repos
   - Build.PL support

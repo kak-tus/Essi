@@ -1,3 +1,7 @@
+0.12 2016-11-19
+  - App::Environ 0.2 support
+  - Big repositories clone fixed
+
 0.11 2016-10-01
   - Support for tar.gz download
   - Fix clean cloned repos

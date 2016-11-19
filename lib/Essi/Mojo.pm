@@ -1,6 +1,6 @@
 package Essi::Mojo;
 
-our $VERSION = 0.11;
+our $VERSION = 0.12;
 
 use common::sense;
 
@@ -34,7 +34,7 @@ sub startup {
 sub _init_config {
   my $self = shift;
 
-  App::Environ->push_event('initialize');
+  App::Environ->send_event('initialize');
   $LOADED = 1;
 
   my $config = App::Environ::Config->instance;
@@ -84,7 +84,7 @@ sub END {
 
   undef $LOADED;
 
-  App::Environ->push_event('finalize');
+  App::Environ->send_event('finalize');
 
   return;
 }

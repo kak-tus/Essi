@@ -16,14 +16,15 @@ my @BUILD_FILES = ( 'Makefile.PL', 'Build.PL' );
 sub build {
   my $self = shift;
 
-  my $path = $self->_path( $self->stash('req_type') );
-  unless ($path) {
+  my $results = $self->_get( $self->stash('req_type') );
+  unless ($results) {
     $self->render( json => { status => 'fail' }, status => 404 );
     return;
   }
 
   $self->fork_call(
     sub {
+      my $path = $self->_path($results);
       $self->_build($path);
     },
     [],
@@ -35,21 +36,20 @@ sub build {
   return;
 }
 
-sub _path {
+sub _get {
   my $self = shift;
   my $type = shift;
 
-  my $file;
-  my $repo;
-
   if ( $type eq 'custom' ) {
-    $repo = $self->param('repo');
+    return { repo => $self->param('repo') };
   }
   elsif ( $type eq 'file' ) {
     return unless $self->param('url') =~ m/\.tar\.gz$/;
-    $file = $self->param('url');
+    return { file => $self->param('url') };
   }
   elsif ( any { $type eq $_ } qw( github gitlab ) ) {
+    my $repo;
+
     if ( $self->param('payload') ) {
       my $data = decode_json( $self->param('payload') );
       $repo = $data->{repository}{clone_url};
@@ -57,14 +57,20 @@ sub _path {
     else {
       $repo = $self->req->json->{repository}{clone_url};
     }
+
+    return { repo => $repo };
   }
-  else {
-    return;
-  }
+
+  return;
+}
+
+sub _path {
+  my $self    = shift;
+  my $results = shift;
 
   my $guid = Data::GUID->new->as_string;
 
-  if ($repo) {
+  if ( my $repo = $results->{repo} ) {
     my $uri = Mojo::URL->new($repo);
 
     ## If ssh - add host and IP's to known_hosts
@@ -75,7 +81,7 @@ sub _path {
     ## Clone repo
     `cd /tmp && git clone $repo essi_$guid/repo`;
   }
-  elsif ($file) {
+  elsif ( my $file = $results->{file} ) {
     `mkdir -p /tmp/essi_$guid/repo \\
     && curl '$file' -o /tmp/essi_$guid/repo.tar.gz \\
     && tar -xzvf /tmp/essi_$guid/repo.tar.gz -C /tmp/essi_$guid/repo --strip-components=1 \\

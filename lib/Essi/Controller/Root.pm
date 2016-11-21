@@ -47,7 +47,7 @@ sub _get {
     return unless $self->param('url') =~ m/\.tar\.gz$/;
     return { file => $self->param('url') };
   }
-  elsif ( any { $type eq $_ } qw( github gitlab ) ) {
+  elsif ( $type eq 'github' ) {
     my $repo;
 
     if ( $self->param('payload') ) {
@@ -56,6 +56,19 @@ sub _get {
     }
     else {
       $repo = $self->req->json->{repository}{clone_url};
+    }
+
+    return { repo => $repo };
+  }
+  elsif ( $type eq 'gitlab' ) {
+    my $repo;
+
+    if ( $self->param('payload') ) {
+      my $data = decode_json( $self->param('payload') );
+      $repo = $data->{repository}{git_ssh_url};
+    }
+    else {
+      $repo = $self->req->json->{repository}{git_ssh_url};
     }
 
     return { repo => $repo };

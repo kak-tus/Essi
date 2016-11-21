@@ -1,3 +1,6 @@
+0.13 2016-11-21
+  - Gitlab webhook fix
+
 0.12 2016-11-19
   - App::Environ 0.2 support
   - Big repositories clone fixed

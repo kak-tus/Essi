@@ -131,7 +131,10 @@ sub _build {
       next unless $git_repo;
 
       $git_repo =~ s/\.git$//;
-      my $dependencie = 'lib' . lc( basename($git_repo) ) . '-perl';
+      $git_repo = lc( basename($git_repo) );
+      $git_repo =~ s/\_/\-/g;
+
+      my $dependencie = 'lib' . $git_repo . '-perl';
       push @found_git_repos, $dependencie;
     }
 

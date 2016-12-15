@@ -195,7 +195,8 @@ sub _build {
     }
   }
 
-  $results = `cd $path/repo \\
+  $results = `export DEB_BUILD_OPTIONS=nocheck \\
+  && cd $path/repo \\
   && dpkg-buildpackage -d -us -uc \\
   && cp $path/*.deb $deb_path \\
   && cp $path/*.changes $deb_path \\

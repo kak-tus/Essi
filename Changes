@@ -1,3 +1,6 @@
+0.16 2016-12-16
+  - Forgotten option. Build fix.
+
 0.15 2016-12-15
   - Feature to allow autoincrement package version.
 

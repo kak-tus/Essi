@@ -6,7 +6,7 @@ use Mojo::Base 'Mojolicious::Controller';
 
 use Data::GUID;
 use Mojo::URL;
-use File::Slurper qw(read_lines);
+use File::Slurper qw( read_lines read_text );
 use File::Basename qw(basename);
 use List::Util qw(any);
 use Cpanel::JSON::XS qw(decode_json);
@@ -16,16 +16,16 @@ my @BUILD_FILES = ( 'Makefile.PL', 'Build.PL' );
 sub build {
   my $self = shift;
 
-  my $results = $self->_get( $self->stash('req_type') );
-  unless ($results) {
+  my $stash = $self->_get( $self->stash('req_type') );
+  unless ($stash) {
     $self->render( json => { status => 'fail' }, status => 404 );
     return;
   }
 
   $self->fork_call(
     sub {
-      my $path = $self->_path($results);
-      $self->_build($path);
+      my $path = $self->_path($stash);
+      $self->_build( $path, $stash );
     },
     [],
     sub { }
@@ -40,12 +40,26 @@ sub _get {
   my $self = shift;
   my $type = shift;
 
+  my %stash;
+
+  my $v = $self->validation;
+
+  $v->optional('auto_version');
+  if ( $v->param('auto_version') ) {
+    $stash{auto_version} = 1;
+  }
+
   if ( $type eq 'custom' ) {
-    return { repo => $self->param('repo') };
+    $v->required('repo');
+    return if $v->has_error;
+
+    $stash{repo} = $v->param('repo');
   }
   elsif ( $type eq 'file' ) {
-    return unless $self->param('url') =~ m/\.tar\.gz$/;
-    return { file => $self->param('url') };
+    $v->required('url')->like(qr/\.tar\.gz$/);
+    return if $v->has_error;
+
+    $stash{file} = $v->param('url');
   }
   elsif ( $type eq 'github' ) {
     my $repo;
@@ -58,7 +72,7 @@ sub _get {
       $repo = $self->req->json->{repository}{clone_url};
     }
 
-    return { repo => $repo };
+    $stash{repo} = $repo;
   }
   elsif ( $type eq 'gitlab' ) {
     my $repo;
@@ -71,10 +85,13 @@ sub _get {
       $repo = $self->req->json->{repository}{git_ssh_url};
     }
 
-    return { repo => $repo };
+    $stash{repo} = $repo;
+  }
+  else {
+    return;
   }
 
-  return;
+  return \%stash;
 }
 
 sub _path {
@@ -106,7 +123,7 @@ sub _path {
 
 sub _build {
   my $self = shift;
-  my $path = shift;
+  my ( $path, $stash ) = @_;
 
   ## Some build *.PL must exists to prevent build of nonperl repos
   my $buildfile;
@@ -145,15 +162,40 @@ sub _build {
 
   my $deb_path = $ENV{ESSI_DEB_PATH} || $self->config->{essi}{deb_path};
 
-  ## Build
-  my $results = `export DEB_BUILD_OPTIONS=nocheck \\
-  && mkdir -p $deb_path \\
+  my $results = `mkdir -p $deb_path \\
   && cd $path/repo \\
-  && perl $buildfile \\
+  && perl $buildfile`;
+
+  $self->app->log->debug($results);
+
+  my $version;
+  my $version_str = '';
+
+  if ( $stash->{auto_version} ) {
+    $version = $self->_detect_version($path);
+    if ( defined $version ) {
+      $version_str = "--version $version-1";
+    }
+  }
+
+  ## Build
+  $results = `export DEB_BUILD_OPTIONS=nocheck \\
   && cd $path \\
   && tar -zcvf repo.tar.gz ./repo \\
   && cd $path/repo \\
-  && dh-make-perl -vcs none $depends \\
+  && dh-make-perl -vcs none $version_str $depends`;
+
+  $self->app->log->debug($results);
+
+  if ( $stash->{auto_version} ) {
+    foreach my $file ( glob "$path/*.orig.tar.gz" ) {
+      my $new_file = $file;
+      $new_file =~ s/\-1\.orig\.tar\.gz$/.orig.tar.gz/;
+      rename $file, $new_file;
+    }
+  }
+
+  $results = `cd $path/repo \\
   && dpkg-buildpackage -d -us -uc \\
   && cp $path/*.deb $deb_path \\
   && cp $path/*.changes $deb_path \\
@@ -185,6 +227,21 @@ sub _add_keys {
   }
 
   return;
+}
+
+sub _detect_version {
+  my $self = shift;
+  my $path = shift;
+
+  my $meta = "$path/repo/MYMETA.json";
+  return unless -e $meta;
+
+  my $txt = read_text($meta);
+  return unless $txt;
+
+  my $decoded = decode_json($txt);
+
+  return $decoded->{version} . '.' . time;
 }
 
 1;

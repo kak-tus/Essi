@@ -72,7 +72,7 @@ sub _init_routes {
 
   $route->post(
     '/v1/build/:req_type',
-    [ req_type => [qw( github gitlab custom file )] ],
+    [ req_type => [qw( github gitlab custom file gogs )] ],
     [ format   => [qw(json)] ]
   )->to('Root#build');
 

@@ -2,7 +2,8 @@
 
 Essi based on [dh-make-perl](https://metacpan.org/pod/DhMakePerl).
 
-Essi is a web service with HTTP api (github/gitlab/custom webhooks notification suport) that get some notification with repo name, download it and creates deb package.
+Essi is a web service with HTTP api (github/gitlab/custom webhooks notification suport) that get some notification
+with repo name, download it and creates deb package.
 
 Essi is a part of CI.
 
@@ -22,7 +23,7 @@ and start it
 sudo hypnotoad /usr/local/bin/essi.pl
 ```
 
-## Github/gitlab API
+## Github/gitlab/gogs API
 
 ```
 http://example-domain:9007/v1/build/github.json
@@ -32,6 +33,12 @@ or
 
 ```
 http://example-domain:9007/v1/build/gitlab.json
+```
+
+or
+
+```
+http://example-domain:9007/v1/build/gogs.json
 ```
 
 But the better solution in non-private environment: use nginx (+https) and proxy pass to application like

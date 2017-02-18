@@ -5,7 +5,6 @@ use common::sense;
 use Mojo::Base 'Mojolicious::Controller';
 
 use Data::GUID;
-use Mojo::URL;
 use File::Slurper qw( read_lines read_text );
 use File::Basename qw(basename);
 use List::Util qw(any);
@@ -18,7 +17,7 @@ sub build {
 
   my $stash = $self->_get( $self->stash('req_type') );
   unless ($stash) {
-    $self->render( json => { status => 'fail' }, status => 404 );
+    $self->render( json => { status => 'fail' }, status => 400 );
     return;
   }
 
@@ -74,7 +73,38 @@ sub _get {
 
     $stash{repo} = $repo;
   }
+  elsif ( $type eq 'github-ssh' ) {
+    my $repo;
+
+    if ( $self->param('payload') ) {
+      my $data = decode_json( $self->param('payload') );
+      $repo = $data->{repository}{ssh_url};
+    }
+    else {
+      $repo = $self->req->json->{repository}{ssh_url};
+    }
+
+    $stash{repo} = $repo;
+  }
   elsif ( $type eq 'gitlab' ) {
+    my $repo;
+
+    my $key = 'git_http_url';
+    if ( $self->stash('version') == 1 ) {
+      $key = 'git_ssh_url';
+    }
+
+    if ( $self->param('payload') ) {
+      my $data = decode_json( $self->param('payload') );
+      $repo = $data->{repository}{$key};
+    }
+    else {
+      $repo = $self->req->json->{repository}{$key};
+    }
+
+    $stash{repo} = $repo;
+  }
+  elsif ( $type eq 'gitlab-ssh' ) {
     my $repo;
 
     if ( $self->param('payload') ) {
@@ -88,9 +118,10 @@ sub _get {
     $stash{repo} = $repo;
   }
   elsif ( $type eq 'gogs' ) {
+    $stash{repo} = $self->req->json->{repository}{html_url};
+  }
+  elsif ( $type eq 'gogs-ssh' ) {
     $stash{repo} = $self->req->json->{repository}{ssh_url};
-    $stash{repo} =~ s/:/\//;
-    $stash{repo} = 'ssh://' . $stash{repo};
   }
   else {
     return;
@@ -106,13 +137,6 @@ sub _path {
   my $guid = Data::GUID->new->as_string;
 
   if ( my $repo = $results->{repo} ) {
-    my $uri = Mojo::URL->new($repo);
-
-    ## If ssh - add host and IP's to known_hosts
-    if ( $uri && $uri->protocol eq 'ssh' ) {
-      $self->_add_keys( $uri->host );
-    }
-
     ## Clone repo
     `cd /tmp && git clone $repo essi_$guid/repo`;
   }
@@ -215,26 +239,6 @@ sub _build {
   return;
 }
 
-sub _add_keys {
-  my $self = shift;
-  my $host = shift;
-
-  my $keys = `ssh-keygen -F $host`;
-  if ( length $keys < 100 ) {
-    my @ips = `dig +short $host`;
-    foreach my $ip (@ips) {
-      chomp $ip;
-      next unless $ip;
-
-      `ssh-keyscan -H $ip >> ~/.ssh/known_hosts`;
-    }
-
-    `ssh-keyscan -H $host >> ~/.ssh/known_hosts`;
-  }
-
-  return;
-}
-
 sub _detect_version {
   my $self = shift;
   my $path = shift;
@@ -248,6 +252,42 @@ sub _detect_version {
   my $decoded = decode_json($txt);
 
   return $decoded->{version} . '.' . time;
+}
+
+sub keyscan {
+  my $self = shift;
+
+  my $v = $self->validation;
+
+  $v->required('host')->host();
+  $v->optional('port')->like(qr/^\d{1,5}$/);
+
+  if ( $v->has_error ) {
+    $self->app->log->warn('Validation fail');
+    $self->render( json => { status => 'fail' }, status => 400 );
+    return;
+  }
+
+  my $host = $v->param('host');
+  my $port = $v->param('port') // 22;
+
+  my $keys = `ssh-keygen -F '$host'`;
+
+  return if length $keys > 100;
+
+  my @ips = `dig +short '$host'`;
+  foreach my $ip (@ips) {
+    chomp $ip;
+    next unless $ip;
+
+    `ssh-keyscan -p $port $ip >> ~/.ssh/known_hosts`;
+  }
+
+  `ssh-keyscan -p $port '$host' >> ~/.ssh/known_hosts`;
+
+  $self->render( json => { status => 'ok' } );
+
+  return;
 }
 
 1;

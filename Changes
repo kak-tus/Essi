@@ -1,3 +1,7 @@
+0.20 2017-02-18
+  - New v2 API version.
+  - ssh clone support.
+
 0.19 2017-02-18
   - Gogs notification fix.
 

@@ -11,6 +11,7 @@ use App::Environ
     finalize   => 1;
 
 use App::Environ::Config;
+use Data::Validate::Domain qw(is_hostname);
 
 App::Environ::Config->register(
   qw(
@@ -27,6 +28,7 @@ sub startup {
   $self->_init_config();
   $self->_init_plugins();
   $self->_init_routes();
+  $self->_init_validation();
 
   return;
 }
@@ -74,7 +76,41 @@ sub _init_routes {
     '/v1/build/:req_type',
     [ req_type => [qw( github gitlab custom file gogs )] ],
     [ format   => [qw(json)] ]
-  )->to('Root#build');
+  )->to( 'Root#build', version => 1 );
+
+  $route->post(
+    '/v2/build/:req_type',
+    [ req_type => [
+        qw(
+            github
+            github-ssh
+            gitlab
+            gitlab-ssh
+            custom
+            file
+            gogs
+            gogs-ssh
+            )
+      ]
+    ],
+    [ format => [qw(json)] ]
+  )->to( 'Root#build', version => 2 );
+
+  $route->post( '/v2/ssh-keyscan', [ format => [qw(json)] ] )
+      ->to('Root#keyscan');
+
+  return;
+}
+
+sub _init_validation {
+  my $self = shift;
+
+  $self->validation->validator->add_check(
+    host => sub {
+      my ( $validation, $name, $value ) = @_;
+      return !is_hostname($value);
+    }
+  );
 
   return;
 }
@@ -84,7 +120,7 @@ sub END {
 
   undef $LOADED;
 
-  App::Environ->send_event('finalize');
+  App::Environ->send_event('finalize:r');
 
   return;
 }

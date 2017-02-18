@@ -88,7 +88,9 @@ sub _get {
     $stash{repo} = $repo;
   }
   elsif ( $type eq 'gogs' ) {
-    $stash{repo} = 'ssh://' . $self->req->json->{repository}{ssh_url};
+    $stash{repo} = $self->req->json->{repository}{ssh_url};
+    $stash{repo} =~ s/:/\//;
+    $stash{repo} = 'ssh://' . $stash{repo};
   }
   else {
     return;

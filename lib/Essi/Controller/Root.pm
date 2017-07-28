@@ -4,13 +4,15 @@ use common::sense;
 
 use Mojo::Base 'Mojolicious::Controller';
 
-use Data::GUID;
-use File::Slurper qw( read_lines read_text );
-use File::Basename qw(basename);
-use List::Util qw(any);
 use Cpanel::JSON::XS qw(decode_json);
+use Data::UUID;
+use File::Basename qw(basename);
+use File::Slurper qw( read_lines read_text );
+use List::Util qw(any);
 
 my @BUILD_FILES = ( 'Makefile.PL', 'Build.PL' );
+
+my $uuid_gen = Data::UUID->new;
 
 sub build {
   my $self = shift;
@@ -134,7 +136,7 @@ sub _path {
   my $self    = shift;
   my $results = shift;
 
-  my $guid = Data::GUID->new->as_string;
+  my $guid = $uuid_gen->create_str();
 
   if ( my $repo = $results->{repo} ) {
     ## Clone repo

@@ -1,6 +1,6 @@
 requires 'AnyEvent';
 requires 'App::Environ';
-requires 'Data::GUID';
+requires 'Data::UUID';
 requires 'Data::Validate::Domain';
 requires 'EV';
 requires 'File::Basename';
